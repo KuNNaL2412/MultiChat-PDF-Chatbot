@@ -1,4 +1,5 @@
 import os
+import dill
 import pickle
 import streamlit as st
 from PyPDF2 import PdfReader
@@ -42,11 +43,11 @@ with st.sidebar:
 
 def save_vector_store(vector_store, file_path):
     with open(file_path, "wb") as f:
-        pickle.dump(vector_store, f)
+        dill.dump(vector_store, f)
 
 def load_vector_store(file_path):
     with open(file_path, "rb") as f:
-        vector_store = pickle.load(f)
+        vector_store = dill.load(f)
     return vector_store
 
 def main():

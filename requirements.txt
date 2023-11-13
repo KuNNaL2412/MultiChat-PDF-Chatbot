@@ -5,3 +5,4 @@ faiss-cpu==1.7.4
 openai==0.28.1
 streamlit-extras
 tiktoken
+dill
