@@ -1,4 +1,5 @@
 import os
+import dill
 import pickle
 import streamlit as st
 from PyPDF2 import PdfReader
@@ -9,44 +10,42 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.chains import ConversationalRetrievalChain
 
 with st.sidebar:
-    st.title('🗨️ PDF Based Chatbot')
-    st.markdown("## Conversation History: ")
+        st.title('🗨️ PDF Based Chatbot')
+        st.markdown("## Conversation History: ")
 
-    if "chat_sessions" not in st.session_state:
-        st.session_state.chat_sessions = {}
+        if "chat_sessions" not in st.session_state:
+            st.session_state.chat_sessions = {}
 
-    if "active_session" not in st.session_state or st.sidebar.button("New Chat"):
-        chat_id = len(st.session_state.chat_sessions) + 1
-        session_key = f"Chat {chat_id}"
-        st.session_state.chat_sessions[session_key] = []
-        st.session_state.active_session = session_key
+        if "active_session" not in st.session_state or st.sidebar.button("New Chat"):
+            chat_id = len(st.session_state.chat_sessions) + 1
+            session_key = f"Chat {chat_id}"
+            st.session_state.chat_sessions[session_key] = []
+            st.session_state.active_session = session_key
 
-    for session in st.session_state.chat_sessions:
-        if st.sidebar.button(session, key=session):
-            st.session_state.active_session = session
-    st.markdown('''
-    ## About App:
+        for session in st.session_state.chat_sessions:
+            if st.sidebar.button(session, key=session):
+                st.session_state.active_session = session
+        st.markdown('''
+        ## About App:
 
-    The app's primary resource is utilized to create:
+        The app's primary resource is utilised to create:
 
-    - [Streamlit](https://streamlit.io/)
-    - [Langchain](https://docs.langchain.com/docs/)
-    - [OpenAI](https://openai.com/)
+        - [Streamlit](https://streamlit.io/)
+        - [Langchain](https://docs.langchain.com/docs/)
+        - [OpenAI](https://openai.com/)
 
-    ## About me:
+        ## About me:
 
-    - [Linkedin](https://www.linkedin.com/in/kunal-pamu-710674230/)
-
-    ''')
-    st.write("Made by Kunal Shripati Pamu")
+        - [Linkedin](https://www.linkedin.com/in/kunal-pamu-710674230/)
+        
+        ''')
+        st.write("Made by Kunal Shripati Pamu")
 
 def save_vector_store(vector_store, file_path):
-    # Save
     with open(file_path, "wb") as f:
-        pickle.dump(vector_store, f, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(vector_store, f)
 
 def load_vector_store(file_path):
-    # Load
     with open(file_path, "rb") as f:
         vector_store = pickle.load(f)
     return vector_store
@@ -74,12 +73,15 @@ def main():
             
             # check cache for pdf name and if present use the previous embeddings else create new ones 
             store_name = pdf.name[:-4]
-
+            
             if os.path.exists(f"{store_name}.pkl"):
-                vector_store = load_vector_store(f"{store_name}.pkl")
+                try:
+                    vector_store = load_vector_store(f"{store_name}.pkl")
+                except Exception as e:
+                    vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
+                    save_vector_store(vector_store, f"{store_name}.pkl")
             else:
-                embeddings=OpenAIEmbeddings()
-                vector_store=FAISS.from_texts(chunks, embedding=embeddings)
+                vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
                 save_vector_store(vector_store, f"{store_name}.pkl")
                 
             llm = OpenAI(temperature=0)
@@ -103,6 +105,7 @@ def main():
                 with st.chat_message("assistant"):
                     st.markdown(response)
                 st.session_state.chat_sessions[st.session_state.active_session].append({"role": "assistant", "content": response})
+
 
 if __name__ == '__main__':
     main()
