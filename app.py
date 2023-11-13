@@ -69,10 +69,10 @@ def main():
                 with open(f"{store_name}.pkl", "rb") as f:
                     vector_store = pickle.load(f)
             else:
-                embeddings = OpenAIEmbeddings()
-                vector_store = FAISS.from_texts(chunks, embedding=embeddings)
-                with open(f"{store_name}.pkl", "rb") as f:
-                    pickle.dump(vector_store, f)
+                embeddings=OpenAIEmbeddings()
+                vector_store=FAISS.from_texts(chunks,embedding=embeddings)
+                with open(f"{store_name}.pkl","wb") as f:
+                    pickle.dump(vector_store,f)
                 
             llm = OpenAI(temperature=0)
             qa_chain = ConversationalRetrievalChain.from_llm(llm, vector_store.as_retriever())
