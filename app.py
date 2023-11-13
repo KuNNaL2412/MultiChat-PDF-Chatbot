@@ -66,13 +66,18 @@ def main():
             # st.write(f'{store_name}')
             
             if os.path.exists(f"{store_name}.pkl"):
-                with open(f"{store_name}.pkl", "rb") as f:
-                    vector_store = pickle.load(f)
+                try:
+                    with open(f"{store_name}.pkl", "rb") as f:
+                        vector_store = pickle.load(f)
+                except EOFError:
+                    st.warning("Warning: The pickle file is empty or corrupted. Creating a new vector store.")
+                    vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
+                    with open(f"{store_name}.pkl", "wb") as new_file:
+                        pickle.dump(vector_store, new_file)
             else:
-                embeddings=OpenAIEmbeddings()
-                vector_store=FAISS.from_texts(chunks,embedding=embeddings)
-                with open(f"{store_name}.pkl","wb") as f:
-                    pickle.dump(vector_store,f)
+                vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
+                with open(f"{store_name}.pkl", "wb") as f:
+                    pickle.dump(vector_store, f)
                 
             llm = OpenAI(temperature=0)
             qa_chain = ConversationalRetrievalChain.from_llm(llm, vector_store.as_retriever())
