@@ -41,18 +41,12 @@ with st.sidebar:
         st.write("Made by Kunal Shripati Pamu")
 
 def save_vector_store(vector_store, file_path):
-    # Exclude non-serializable components
-    serializable_store = vector_store.as_dict(exclude={"index", "retriever"})
-    
     with open(file_path, "wb") as f:
-        pickle.dump(serializable_store, f)
+        pickle.dump(vector_store, f)
 
 def load_vector_store(file_path):
     with open(file_path, "rb") as f:
-        serializable_store = pickle.load(f)
-    
-    # Reconstruct the vector_store
-    vector_store = FAISS.from_dict(serializable_store)
+        vector_store = pickle.load(f)
     return vector_store
 
 def main():
