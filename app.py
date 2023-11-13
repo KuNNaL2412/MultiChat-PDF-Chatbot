@@ -41,15 +41,6 @@ with st.sidebar:
         ''')
         st.write("Made by Kunal Shripati Pamu")
 
-def save_vector_store(vector_store, file_path):
-    with open(file_path, "wb") as f:
-        dill.dump(vector_store, f)
-
-def load_vector_store(file_path):
-    with open(file_path, "rb") as f:
-        vector_store = dill.load(f)
-    return vector_store
-
 def main():
     api_key = st.text_input("Enter your OpenAI API Key", type="password")
     if api_key:
@@ -73,17 +64,15 @@ def main():
             
             # check cache for pdf name and if present use the previous embeddings else create new ones 
             store_name = pdf.name[:-4]
-            
+
             if os.path.exists(f"{store_name}.pkl"):
-                try:
-                    vector_store = load_vector_store(f"{store_name}.pkl")
-                except Exception as e:
-                    st.warning(f"Warning: Unable to load vector store. Creating a new vector store. Error: {e}")
-                    vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
-                    save_vector_store(vector_store, f"{store_name}.pkl")
+                with open(f"{store_name}.pkl", "rb") as f:
+                    vector_store = dill.load(f)
             else:
-                vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
-                save_vector_store(vector_store, f"{store_name}.pkl")
+                embeddings=OpenAIEmbeddings()
+                vector_store=FAISS.from_texts(chunks,embedding=embeddings)
+                with open(f"{store_name}.pkl", "wb") as f:
+                    dill.dump(vector_store, f)
                 
             llm = OpenAI(temperature=0)
             qa_chain = ConversationalRetrievalChain.from_llm(llm, vector_store.as_retriever())
