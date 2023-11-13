@@ -71,7 +71,7 @@ def main():
             else:
                 embeddings = OpenAIEmbeddings()
                 vector_store = FAISS.from_texts(chunks, embedding=embeddings)
-                with open(f"{store_name}.pkl", "wb") as f:
+                with open(f"{store_name}.pkl", "rb") as f:
                     pickle.dump(vector_store, f)
                 
             llm = OpenAI(temperature=0)
