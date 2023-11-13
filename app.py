@@ -1,5 +1,4 @@
 import os
-import dill
 import pickle
 import streamlit as st
 from PyPDF2 import PdfReader
@@ -41,15 +40,6 @@ with st.sidebar:
         ''')
         st.write("Made by Kunal Shripati Pamu")
 
-def save_vector_store(vector_store, file_path):
-    with open(file_path, "wb") as f:
-        pickle.dump(vector_store, f)
-
-def load_vector_store(file_path):
-    with open(file_path, "rb") as f:
-        vector_store = pickle.load(f)
-    return vector_store
-
 def main():
     api_key = st.text_input("Enter your OpenAI API Key", type="password")
     if api_key:
@@ -71,18 +61,8 @@ def main():
             text_splitter = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=200)
             chunks = text_splitter.split_text(text)
             
-            # check cache for pdf name and if present use the previous embeddings else create new ones 
-            store_name = pdf.name[:-4]
-            
-            if os.path.exists(f"{store_name}.pkl"):
-                try:
-                    vector_store = load_vector_store(f"{store_name}.pkl")
-                except Exception as e:
-                    vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
-                    save_vector_store(vector_store, f"{store_name}.pkl")
-            else:
-                vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
-                save_vector_store(vector_store, f"{store_name}.pkl")
+            embeddings = OpenAIEmbeddings()
+            vector_store = FAISS.from_texts(chunks, embedding=embeddings)
                 
             llm = OpenAI(temperature=0)
             qa_chain = ConversationalRetrievalChain.from_llm(llm, vector_store.as_retriever())
@@ -105,7 +85,6 @@ def main():
                 with st.chat_message("assistant"):
                     st.markdown(response)
                 st.session_state.chat_sessions[st.session_state.active_session].append({"role": "assistant", "content": response})
-
 
 if __name__ == '__main__':
     main()
