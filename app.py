@@ -16,7 +16,7 @@ with st.sidebar:
             st.session_state.chat_sessions = {}
         
         # New Chat button
-        if "active_session" not in st.session_state or st.sidebar.button("New Chat"):
+        if "active_session" not in st.session_state or st.sidebar.button("New Chat +", use_container_width=True):
             # Create a new chat session and set it as active
             chat_id = len(st.session_state.chat_sessions) + 1
             session_key = f"Chat {chat_id}"
