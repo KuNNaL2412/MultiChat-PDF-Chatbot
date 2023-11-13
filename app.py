@@ -40,6 +40,21 @@ with st.sidebar:
         ''')
         st.write("Made by Kunal Shripati Pamu")
 
+def save_vector_store(vector_store, file_path):
+    # Exclude non-serializable components
+    serializable_store = vector_store.as_dict(exclude={"index", "retriever"})
+    
+    with open(file_path, "wb") as f:
+        pickle.dump(serializable_store, f)
+
+def load_vector_store(file_path):
+    with open(file_path, "rb") as f:
+        serializable_store = pickle.load(f)
+    
+    # Reconstruct the vector_store
+    vector_store = FAISS.from_dict(serializable_store)
+    return vector_store
+
 def main():
     api_key = st.text_input("Enter your OpenAI API Key", type="password")
     if api_key:
@@ -63,21 +78,17 @@ def main():
             
             # check cache for pdf name and if present use the previous embeddings else create new ones 
             store_name = pdf.name[:-4]
-            # st.write(f'{store_name}')
             
             if os.path.exists(f"{store_name}.pkl"):
                 try:
-                    with open(f"{store_name}.pkl", "rb") as f:
-                        vector_store = pickle.load(f)
-                except EOFError:
-                    st.warning("Warning: The pickle file is empty or corrupted. Creating a new vector store.")
+                    vector_store = load_vector_store(f"{store_name}.pkl")
+                except Exception as e:
+                    st.warning(f"Warning: Unable to load vector store. Creating a new vector store. Error: {e}")
                     vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
-                    with open(f"{store_name}.pkl", "wb") as new_file:
-                        pickle.dump(vector_store, new_file)
+                    save_vector_store(vector_store, f"{store_name}.pkl")
             else:
                 vector_store = FAISS.from_texts(chunks, embedding=OpenAIEmbeddings())
-                with open(f"{store_name}.pkl", "wb") as f:
-                    pickle.dump(vector_store, f)
+                save_vector_store(vector_store, f"{store_name}.pkl")
                 
             llm = OpenAI(temperature=0)
             qa_chain = ConversationalRetrievalChain.from_llm(llm, vector_store.as_retriever())
@@ -100,6 +111,7 @@ def main():
                 with st.chat_message("assistant"):
                     st.markdown(response)
                 st.session_state.chat_sessions[st.session_state.active_session].append({"role": "assistant", "content": response})
+
 
 if __name__ == '__main__':
     main()
