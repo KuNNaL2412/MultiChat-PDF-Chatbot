@@ -14,13 +14,16 @@ with st.sidebar:
 
         if "chat_sessions" not in st.session_state:
             st.session_state.chat_sessions = {}
-
+        
+        # New Chat button
         if "active_session" not in st.session_state or st.sidebar.button("New Chat"):
+            # Create a new chat session and set it as active
             chat_id = len(st.session_state.chat_sessions) + 1
             session_key = f"Chat {chat_id}"
             st.session_state.chat_sessions[session_key] = []
             st.session_state.active_session = session_key
 
+        # Buttons for previous chat sessions
         for session in st.session_state.chat_sessions:
             if st.sidebar.button(session, key=session):
                 st.session_state.active_session = session
@@ -61,9 +64,11 @@ def main():
             text_splitter = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=200)
             chunks = text_splitter.split_text(text)
             
+            # Open AI embeddings and vector store 
             embeddings = OpenAIEmbeddings()
             vector_store = FAISS.from_texts(chunks, embedding=embeddings)
-                
+            
+            # Open AI LLM and initializing a Conversation Chain using langchain
             llm = OpenAI(temperature=0)
             qa_chain = ConversationalRetrievalChain.from_llm(llm, vector_store.as_retriever())
 
@@ -71,17 +76,21 @@ def main():
                 for message in st.session_state.chat_sessions[st.session_state.active_session]:
                     with st.chat_message(message["role"]):
                         st.markdown(message["content"])
-
+            
+            # Read user input prompt
             query = st.chat_input("Ask your questions from PDF ")
 
             if query:
+                # using chat message to initiate User conversation
                 st.session_state.chat_sessions[st.session_state.active_session].append({"role": "user", "content": query})
                 with st.chat_message("user"):
                     st.markdown(query)
 
+                # Generate response using qa chain with the help of query and previous messages
                 result = qa_chain({"question": query, "chat_history": [(message["role"], message["content"]) for message in st.session_state.chat_sessions[st.session_state.active_session]]})
                 response = result["answer"]
 
+                # using chat message to initiate Bot conversation
                 with st.chat_message("assistant"):
                     st.markdown(response)
                 st.session_state.chat_sessions[st.session_state.active_session].append({"role": "assistant", "content": response})
